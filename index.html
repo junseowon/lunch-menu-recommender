@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>오늘 뭐 먹지? 점심 메뉴 추천기 300</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c'
+            }
+          },
+          animation: {
+            'bounce-short': 'bounce 0.5s ease-in-out 2',
+            'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Tone.js for sound effects -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <!-- Confetti-canvas -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700;800&display=swap');
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .slot-shuffler {
+      transition: transform 0.08s ease-in-out;
+    }
+    .gradient-header {
+      background: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #fb923c 100%);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-orange-200">
+
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5 cursor-pointer" onclick="switchTab('roulette')">
+        <div class="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-md shadow-orange-500/30">
+          <i class="fa-solid fa-utensils text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-lg text-slate-900 leading-tight tracking-tight">
+            점심메뉴<span class="text-orange-600">추천기 300</span>
+          </h1>
+          <p class="text-[11px] text-slate-400 font-medium">한국인이 사랑하는 300가지 외식 메뉴</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+        <button id="tab-btn-roulette" onclick="switchTab('roulette')" class="px-3 py-1.5 rounded-lg transition-all bg-white text-orange-600 shadow-sm">
+          <i class="fa-solid fa-shuffle mr-1"></i>룰렛 뽑기
+        </button>
+        <button id="tab-btn-worldcup" onclick="switchTab('worldcup')" class="px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900">
+          <i class="fa-solid fa-trophy mr-1 text-amber-500"></i>메뉴 월드컵
+        </button>
+        <button id="tab-btn-list" onclick="switchTab('list')" class="px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900">
+          <i class="fa-solid fa-list mr-1"></i>전체 300선
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-4xl w-full mx-auto p-4 md:py-6">
+
+    <!-- TAB 1: 룰렛/슬롯머신 추천기 -->
+    <section id="tab-roulette" class="space-y-6">
+      <!-- 상황별 필터 칩 -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-solid fa-sliders text-orange-500"></i> 취향 및 테마 필터
+          </span>
+          <button onclick="resetFilters()" class="text-xs text-slate-400 hover:text-orange-600 flex items-center gap-1 transition">
+            <i class="fa-solid fa-arrow-rotate-left text-[10px]"></i>필터 초기화
+          </button>
+        </div>
+
+        <!-- 상황 태그 필터 -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar" id="theme-tags-container">
+          <!-- Dynamically populated tags -->
+        </div>
+
+        <!-- 카테고리 칩 -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar" id="category-chips-container">
+          <!-- Dynamically populated categories -->
+        </div>
+      </div>
+
+      <!-- 추천 슬롯 카드 -->
+      <div class="relative bg-gradient-to-b from-white to-orange-50/50 rounded-3xl border-2 border-orange-200/80 shadow-xl overflow-hidden p-6 md:p-8 text-center">
+        <!-- 배경 장식 아이콘 -->
+        <div class="absolute -right-6 -bottom-6 text-orange-100/60 text-9xl pointer-events-none select-none">
+          <i class="fa-solid fa-bowl-food"></i>
+        </div>
+
+        <div class="relative z-10">
+          <div class="inline-flex items-center gap-1.5 bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1 rounded-full mb-4">
+            <i class="fa-solid fa-dice text-orange-500"></i>
+            <span id="pool-count-label">300개 메뉴 준비 완료</span>
+          </div>
+
+          <!-- 슬롯머신 텍스트 영역 -->
+          <div class="min-h-[140px] md:min-h-[160px] flex flex-col items-center justify-center">
+            <span id="result-category" class="text-xs md:text-sm font-semibold text-slate-400 tracking-wide uppercase transition-opacity">
+              점심 고민 끝!
+            </span>
+            <h2 id="result-dish-name" class="text-3xl md:text-5xl font-extrabold text-slate-900 my-2 tracking-tight transition-all duration-200">
+              오늘의 추천 메뉴는?
+            </h2>
+            <p id="result-desc" class="text-sm text-slate-500 font-medium max-w-md">
+              아래 버튼을 누르면 딱 어울리는 음식을 즉시 추첨해 드립니다!
+            </p>
+          </div>
+
+          <!-- 추천 액션 버튼 -->
+          <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button id="spin-btn" onclick="spinMenu()" class="w-full sm:w-auto px-8 py-4 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold text-lg rounded-2xl shadow-lg shadow-orange-500/30 transition-all flex items-center justify-center gap-2">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+              <span>점심 메뉴 추천받기!</span>
+            </button>
+            <button id="sound-toggle-btn" onclick="toggleSound()" class="px-4 py-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 transition text-sm font-semibold flex items-center gap-1.5 shadow-sm" title="사운드 효과 켜기/끄기">
+              <i id="sound-icon" class="fa-solid fa-volume-high text-orange-500"></i>
+              <span class="sr-only">소리</span>
+            </button>
+          </div>
+
+          <!-- 결과 액션 (지도 검색, 공유) - 처음에는 숨김 -->
+          <div id="result-action-bar" class="hidden mt-6 pt-6 border-t border-orange-200/60 flex flex-wrap items-center justify-center gap-2">
+            <a id="link-naver" href="#" target="_blank" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-map-pin"></i> 네이버 지도 검색
+            </a>
+            <a id="link-kakao" href="#" target="_blank" class="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-location-dot"></i> 카카오맵 검색
+            </a>
+            <button onclick="copyCurrentMenu()" class="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-semibold transition flex items-center gap-1.5">
+              <i class="fa-regular fa-copy"></i> 메뉴 복사
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 최근 추천 기록 -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+            <i class="fa-solid fa-clock-rotate-left text-orange-500"></i> 최근 뽑힌 메뉴
+          </span>
+          <button onclick="clearRecentHistory()" class="text-[11px] text-slate-400 hover:text-slate-600">기록 삭제</button>
+        </div>
+        <div id="recent-history-list" class="flex flex-wrap gap-1.5 text-xs">
+          <span class="text-slate-400 text-xs py-1">아직 추천 기록이 없습니다. 버튼을 눌러보세요!</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-worldcup" class="hidden space-y-6">
+      <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm text-center">
+        <div class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full mb-3">
+          <i class="fa-solid fa-trophy text-amber-500"></i> 점심메뉴 이상형 월드컵
+        </div>
+        <h2 class="text-2xl font-extrabold text-slate-900">오늘의 최애 점심을 골라보세요!</h2>
+        <p class="text-xs text-slate-500 mt-1">300개 음식 중 무작위 후보들이 1:1 토너먼트로 맞붙습니다.</p>
+
+        <!-- 토너먼트 진행 전 설정 -->
+        <div id="worldcup-setup" class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button onclick="startWorldcup(8)" class="w-full sm:w-auto px-6 py-3 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold rounded-2xl shadow-md transition">
+            <i class="fa-solid fa-bolt mr-1"></i> 8강 빠르게 시작
+          </button>
+          <button onclick="startWorldcup(16)" class="w-full sm:w-auto px-6 py-3 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold rounded-2xl shadow-md transition">
+            <i class="fa-solid fa-fire mr-1"></i> 16강 신중하게 시작
+          </button>
+        </div>
+
+        <!-- 토너먼트 진행 경기장 -->
+        <div id="worldcup-arena" class="hidden mt-6 space-y-4">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-400 px-2">
+            <span id="wc-round-label" class="text-orange-600">8강</span>
+            <span id="wc-match-label">1 / 4 경기</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- 왼쪽 후보 -->
+            <button id="wc-btn-left" onclick="chooseCandidate(0)" class="group relative bg-gradient-to-br from-orange-50 to-white hover:from-orange-100 hover:to-orange-50 p-6 rounded-2xl border-2 border-orange-200 hover:border-orange-500 transition-all text-left shadow-sm hover:shadow-md flex flex-col justify-between min-h-[160px]">
+              <div>
+                <span id="wc-left-category" class="text-xs font-bold text-orange-600 bg-orange-100 px-2.5 py-0.5 rounded-full">카테고리</span>
+                <h3 id="wc-left-title" class="text-2xl font-extrabold text-slate-900 mt-3 group-hover:text-orange-600 transition">메뉴명</h3>
+              </div>
+              <div class="mt-4 flex items-center justify-between text-xs text-slate-400">
+                <span>이 메뉴 선택하기</span>
+                <i class="fa-solid fa-circle-check text-lg text-slate-300 group-hover:text-orange-500 transition"></i>
+              </div>
+            </button>
+
+            <!-- 오른쪽 후보 -->
+            <button id="wc-btn-right" onclick="chooseCandidate(1)" class="group relative bg-gradient-to-br from-amber-50 to-white hover:from-amber-100 hover:to-amber-50 p-6 rounded-2xl border-2 border-amber-200 hover:border-amber-500 transition-all text-left shadow-sm hover:shadow-md flex flex-col justify-between min-h-[160px]">
+              <div>
+                <span id="wc-right-category" class="text-xs font-bold text-amber-600 bg-amber-100 px-2.5 py-0.5 rounded-full">카테고리</span>
+                <h3 id="wc-right-title" class="text-2xl font-extrabold text-slate-900 mt-3 group-hover:text-amber-600 transition">메뉴명</h3>
+              </div>
+              <div class="mt-4 flex items-center justify-between text-xs text-slate-400">
+                <span>이 메뉴 선택하기</span>
+                <i class="fa-solid fa-circle-check text-lg text-slate-300 group-hover:text-amber-500 transition"></i>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- 최종 우승 결과 -->
+        <div id="worldcup-result" class="hidden mt-6 p-6 bg-gradient-to-b from-amber-50 to-white rounded-2xl border border-amber-300">
+          <div class="w-16 h-16 bg-amber-400 text-white rounded-full flex items-center justify-center mx-auto text-2xl shadow-lg mb-3">
+            <i class="fa-solid fa-crown"></i>
+          </div>
+          <span class="text-xs font-bold text-amber-700 uppercase">오늘의 우승 점심 메뉴!</span>
+          <h3 id="wc-winner-name" class="text-3xl md:text-4xl font-black text-slate-900 my-2">메뉴 이름</h3>
+          <p id="wc-winner-cat" class="text-xs text-slate-500">카테고리</p>
+
+          <div class="mt-5 flex flex-wrap justify-center gap-2">
+            <a id="wc-link-naver" href="#" target="_blank" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-sm">
+              네이버 지도 식당 찾기
+            </a>
+            <a id="wc-link-kakao" href="#" target="_blank" class="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 text-xs font-bold rounded-xl shadow-sm">
+              카카오맵 식당 찾기
+            </a>
+            <button onclick="restartWorldcup()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl">
+              다시 하기
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-list" class="hidden space-y-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div>
+          <h2 class="font-extrabold text-slate-900 text-base">전체 300가지 음식 데이터베이스</h2>
+          <p class="text-xs text-slate-400">카테고리별로 정렬하고 검색해 보세요.</p>
+        </div>
+        <div class="relative min-w-[240px]">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+          <input id="search-input" oninput="filterAllList()" type="text" placeholder="음식명 또는 카테고리 검색..." class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-orange-500">
+        </div>
+      </div>
+
+      <!-- 리스트 테이블 -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500 font-semibold">
+          <span>검색 결과: <b id="list-count" class="text-orange-600">300</b>개</span>
+          <span class="text-[11px] text-slate-400">항목 클릭 시 지도 검색</span>
+        </div>
+        <div class="max-h-[500px] overflow-y-auto divide-y divide-slate-100" id="all-food-table-body">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
+    <p>한국인이 사랑하는 300가지 음식 데이터 기반 &copy; 2026 점심 메뉴 추천기</p>
+    <p class="mt-1">결정이 어려울 땐 룰렛에게 맡겨보세요!</p>
+  </footer>
+
+  <!-- 알림 토스트 (Alert 대신 사용) -->
+  <div id="toast-box" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none z-50 flex items-center gap-2">
+    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toast-msg">복사되었습니다!</span>
+  </div>
+
+  <script>
+    // 300개 한식 및 외식 메뉴 풀 (카테고리 + 키워드 태그)
+    const RAW_FOODS = [
+      { id: 1, name: "김치찌개", cat: "탕/찌개", tags: ["든든한국물", "매콤", "가성비"] },
+      { id: 2, name: "된장찌개", cat: "탕/찌개", tags: ["든든한국물", "구수한", "혼밥"] },
+      { id: 3, name: "순두부찌개", cat: "탕/찌개", tags: ["든든한국물", "매콤", "부드러운"] },
+      { id: 4, name: "부대찌개", cat: "탕/찌개", tags: ["든든한국물", "푸짐한", "다함께"] },
+      { id: 5, name: "청국장찌개", cat: "탕/찌개", tags: ["구수한", "전통", "든든한국물"] },
+      { id: 6, name: "비지찌개", cat: "탕/찌개", tags: ["고소한", "부드러운", "전통"] },
+      { id: 7, name: "고추장찌개", cat: "탕/찌개", tags: ["매콤", "진한맛"] },
+      { id: 8, name: "동태찌개", cat: "탕/찌개", tags: ["시원한국물", "해장", "생선"] },
+      { id: 9, name: "알탕", cat: "탕/찌개", tags: ["얼큰한", "해장", "시원한국물"] },
+      { id: 10, name: "대구매운탕", cat: "탕/찌개", tags: ["시원한국물", "해장", "생선"] },
+      { id: 11, name: "꽃게탕", cat: "탕/찌개", tags: ["시원한국물", "해산물"] },
+      { id: 12, name: "갈비탕", cat: "국/탕", tags: ["든든한국물", "보양식", "고기"] },
+      { id: 13, name: "설렁탕", cat: "국/탕", tags: ["뽀얀국물", "혼밥", "빠른한끼"] },
+      { id: 14, name: "곰탕", cat: "국/탕", tags: ["뽀얀국물", "든든한국물", "보양"] },
+      { id: 15, name: "꼬리곰탕", cat: "국/탕", tags: ["보양식", "든든한국물"] },
+      { id: 16, name: "도가니탕", cat: "국/탕", tags: ["보양식", "쫀득한"] },
+      { id: 17, name: "삼계탕", cat: "국/탕", tags: ["보양식", "든든한국물", "닭고기"] },
+      { id: 18, name: "육개장", cat: "국/탕", tags: ["얼큰한", "해장", "든든한국물"] },
+      { id: 19, name: "뼈해장국", cat: "국/탕", tags: ["해장", "얼큰한", "고기", "혼밥"] },
+      { id: 20, name: "선지해장국", cat: "국/탕", tags: ["해장", "시원한국물", "전통"] },
+      { id: 21, name: "황태해장국", cat: "국/탕", tags: ["해장", "시원한국물", "깔끔한"] },
+      { id: 22, name: "콩나물국밥", cat: "국/탕", tags: ["해장", "시원한국물", "가성비", "혼밥"] },
+      { id: 23, name: "순댓국", cat: "국/탕", tags: ["든든한국물", "혼밥", "가성비"] },
+      { id: 24, name: "돼지국밥", cat: "국/탕", tags: ["든든한국물", "부산명물", "혼밥"] },
+      { id: 25, name: "추어탕", cat: "국/탕", tags: ["보양식", "고소한"] },
+      { id: 26, name: "미역국", cat: "국/탕", tags: ["집밥느낌", "깔끔한"] },
+      { id: 27, name: "소고기무국", cat: "국/탕", tags: ["집밥느낌", "시원한국물"] },
+      { id: 28, name: "시래기국", cat: "국/탕", tags: ["구수한", "가벼운"] },
+      { id: 29, name: "올갱이국", cat: "국/탕", tags: ["시원한국물", "해장"] },
+      { id: 30, name: "재첩국", cat: "국/탕", tags: ["시원한국물", "깔끔한"] },
+      { id: 31, name: "감자탕", cat: "전골/탕", tags: ["다함께", "푸짐한", "고기"] },
+      { id: 32, name: "곱창전골", cat: "전골/탕", tags: ["얼큰한", "푸짐한"] },
+      { id: 33, name: "낙곱새전골", cat: "전골/탕", tags: ["매콤", "다함께", "푸짐한"] },
+      { id: 34, name: "불고기전골", cat: "전골/탕", tags: ["달콤짭짤", "다함께", "고기"] },
+      { id: 35, name: "만두전골", cat: "전골/탕", tags: ["푸짐한", "따뜻한"] },
+      { id: 36, name: "버섯전골", cat: "전골/탕", tags: ["건강식", "담백한"] },
+      { id: 37, name: "연포탕", cat: "전골/탕", tags: ["시원한국물", "보양식", "해산물"] },
+      { id: 38, name: "해물탕", cat: "전골/탕", tags: ["시원한국물", "푸짐한", "해산물"] },
+      { id: 39, name: "어복쟁반", cat: "전골/탕", tags: ["담백한", "고급", "전통"] },
+      { id: 40, name: "밀푀유나베", cat: "전골/탕", tags: ["깔끔한", "채소듬뿍"] },
+      { id: 41, name: "삼겹살구이", cat: "구이", tags: ["고기파티", "기름진맛"] },
+      { id: 42, name: "목살구이", cat: "구이", tags: ["고기", "담백한"] },
+      { id: 43, name: "항정살구이", cat: "구이", tags: ["고기", "쫄깃한"] },
+      { id: 44, name: "가브리살구이", cat: "구이", tags: ["고기", "특수부위"] },
+      { id: 45, name: "돼지갈비구이", cat: "구이", tags: ["달콤짭짤", "고기", "다함께"] },
+      { id: 46, name: "소갈비구이", cat: "구이", tags: ["고급", "고기"] },
+      { id: 47, name: "차돌박이구이", cat: "구이", tags: ["고기", "빠른구이"] },
+      { id: 48, name: "꽃등심구이", cat: "구이", tags: ["고급", "육즙가득"] },
+      { id: 49, name: "소안심구이", cat: "구이", tags: ["부드러운", "고급"] },
+      { id: 50, name: "소곱창구이", cat: "구이", tags: ["고소한", "기름진맛"] },
+      { id: 51, name: "소대창구이", cat: "구이", tags: ["고소한", "기름진맛"] },
+      { id: 52, name: "소막창구이", cat: "구이", tags: ["쫄깃한"] },
+      { id: 53, name: "돼지막창구이", cat: "구이", tags: ["쫄깃한", "고소한"] },
+      { id: 54, name: "돼지껍데기구이", cat: "구이", tags: ["콜라겐", "쫄깃한"] },
+      { id: 55, name: "닭목살구이", cat: "구이", tags: ["특수부위", "담백한"] },
+      { id: 56, name: "닭갈비", cat: "볶음", tags: ["매콤", "다함께", "볶음밥필수"] },
+      { id: 57, name: "숯불닭갈비", cat: "구이", tags: ["불맛", "닭고기"] },
+      { id: 58, name: "더덕구이", cat: "구이", tags: ["향긋한", "건강식"] },
+      { id: 59, name: "황태구이", cat: "구이", tags: ["매콤달콤", "전통"] },
+      { id: 60, name: "고등어구이", cat: "구이", tags: ["생선", "고소한", "집밥느낌"] },
+      { id: 61, name: "삼치구이", cat: "구이", tags: ["생선", "담백한", "살코기"] },
+      { id: 62, name: "갈치구이", cat: "구이", tags: ["생선", "부드러운"] },
+      { id: 63, name: "조기구이", cat: "구이", tags: ["생선", "짭조름"] },
+      { id: 64, name: "임연수구이", cat: "구이", tags: ["생선", "촉촉한"] },
+      { id: 65, name: "장어구이", cat: "구이", tags: ["보양식", "고소한"] },
+      { id: 66, name: "조개구이", cat: "구이", tags: ["해산물", "다함께"] },
+      { id: 67, name: "꼼장어구이", cat: "구이", tags: ["매콤", "쫄깃한"] },
+      { id: 68, name: "떡갈비", cat: "구이", tags: ["달콤짭짤", "육즙가득"] },
+      { id: 69, name: "너비아니", cat: "구이", tags: ["전통", "달콤짭짤"] },
+      { id: 70, name: "LA갈비구이", cat: "구이", tags: ["달콤짭짤", "고기"] },
+      { id: 71, name: "제육볶음", cat: "볶음", tags: ["매콤", "혼밥", "점심최강자"] },
+      { id: 72, name: "오징어볶음", cat: "볶음", tags: ["매콤", "해산물"] },
+      { id: 73, name: "낙지볶음", cat: "볶음", tags: ["화끈한매운맛", "스트레스해소"] },
+      { id: 74, name: "쭈꾸미볶음", cat: "볶음", tags: ["매콤", "쫄깃한"] },
+      { id: 75, name: "오삼불고기", cat: "볶음", tags: ["매콤", "고기+해물"] },
+      { id: 76, name: "순대볶음", cat: "볶음", tags: ["매콤", "들깨향"] },
+      { id: 77, name: "곱창볶음", cat: "볶음", tags: ["매콤", "쫄깃한"] },
+      { id: 78, name: "두부김치", cat: "볶음", tags: ["매콤", "담백한"] },
+      { id: 79, name: "간장불고기", cat: "볶음", tags: ["달콤짭짤", "남녀노소"] },
+      { id: 80, name: "소불고기", cat: "볶음", tags: ["달콤짭짤", "고기"] },
+      { id: 81, name: "닭발볶음", cat: "볶음", tags: ["화끈한매운맛", "쫄깃한"] },
+      { id: 82, name: "골뱅이소면무침", cat: "무침", tags: ["새콤달콤", "매콤"] },
+      { id: 83, name: "도토리묵무침", cat: "무침", tags: ["가벼운", "다이어트"] },
+      { id: 84, name: "육회", cat: "생채/회", tags: ["신선한", "고소한"] },
+      { id: 85, name: "육사시미", cat: "생채/회", tags: ["신선한", "담백한"] },
+      { id: 86, name: "광어회", cat: "생채/회", tags: ["해산물", "쫄깃한"] },
+      { id: 87, name: "우럭회", cat: "생채/회", tags: ["해산물", "쫄깃한"] },
+      { id: 88, name: "연어회", cat: "생채/회", tags: ["부드러운", "고소한"] },
+      { id: 89, name: "방어회", cat: "생채/회", tags: ["제철", "기름진맛"] },
+      { id: 90, name: "참치회", cat: "생채/회", tags: ["신선한", "고급"] },
+      { id: 91, name: "산낙지탕탕이", cat: "생채/회", tags: ["신선한", "쫄깃한"] },
+      { id: 92, name: "물회", cat: "생채/회", tags: ["시원한국물", "새콤달콤", "여름별미"] },
+      { id: 93, name: "홍어삼합", cat: "특선", tags: ["알싸한", "전통"] },
+      { id: 94, name: "수육", cat: "찜/조림", tags: ["담백한", "고기"] },
+      { id: 95, name: "보쌈정식", cat: "찜/조림", tags: ["든든한", "고기", "점심정식"] },
+      { id: 96, name: "족발", cat: "찜/조림", tags: ["쫄깃한", "푸짐한"] },
+      { id: 97, name: "매운족발", cat: "찜/조림", tags: ["화끈한매운맛", "스트레스해소"] },
+      { id: 98, name: "냉채족발", cat: "찜/조림", tags: ["톡쏘는", "상큼한"] },
+      { id: 99, name: "소갈비찜", cat: "찜/조림", tags: ["달콤짭짤", "푸짐한", "고급"] },
+      { id: 100, name: "돼지갈비찜", cat: "찜/조림", tags: ["달콤짭짤", "고기"] },
+      { id: 101, name: "매운갈비찜", cat: "찜/조림", tags: ["화끈한매운맛", "스트레스해소"] },
+      { id: 102, name: "안동찜닭", cat: "찜/조림", tags: ["달콤짭짤", "당면듬뿍", "다함께"] },
+      { id: 103, name: "닭볶음탕", cat: "찜/조림", tags: ["매콤", "얼큰한", "닭고기"] },
+      { id: 104, name: "곱도리탕", cat: "찜/조림", tags: ["매콤", "진한국물"] },
+      { id: 105, name: "해물찜", cat: "찜/조림", tags: ["매콤", "해산물", "아삭한콩나물"] },
+      { id: 106, name: "아구찜", cat: "찜/조림", tags: ["매콤", "콩나물", "쫄깃한"] },
+      { id: 107, name: "대구넙적찜", cat: "찜/조림", tags: ["매콤", "생선"] },
+      { id: 108, name: "꽃게찜", cat: "찜/조림", tags: ["달달한게살", "해산물"] },
+      { id: 109, name: "갈치조림", cat: "찜/조림", tags: ["매콤달콤", "밥도둑"] },
+      { id: 110, name: "고등어조림", cat: "찜/조림", tags: ["매콤달콤", "묵은지", "밥도둑"] },
+      { id: 111, name: "꽁치김치조림", cat: "찜/조림", tags: ["매콤", "집밥느낌"] },
+      { id: 112, name: "코다리조림", cat: "찜/조림", tags: ["매콤달콤", "쫄깃한"] },
+      { id: 113, name: "우엉조림", cat: "반찬", tags: ["달콤짭짤", "건강"] },
+      { id: 114, name: "연근조림", cat: "반찬", tags: ["아삭한", "달콤짭짤"] },
+      { id: 115, name: "소고기장조림", cat: "반찬", tags: ["달콤짭짤", "밥도둑"] },
+      { id: 116, name: "폭탄계란찜", cat: "찜", tags: ["부드러운", "고소한"] },
+      { id: 117, name: "해물파전", cat: "전/부침", tags: ["바삭한", "비오는날", "해산물"] },
+      { id: 118, name: "김치전", cat: "전/부침", tags: ["매콤바삭", "비오는날"] },
+      { id: 119, name: "감자전", cat: "전/부침", tags: ["쫄깃바삭", "고소한"] },
+      { id: 120, name: "녹두빈대떡", cat: "전/부침", tags: ["고소한", "시장별미"] },
+      { id: 121, name: "동태전", cat: "전/부침", tags: ["부드러운", "생선"] },
+      { id: 122, name: "소고기육전", cat: "전/부침", tags: ["고소한", "고급"] },
+      { id: 123, name: "동그랑땡", cat: "전/부침", tags: ["촉촉한", "고기"] },
+      { id: 124, name: "호박전", cat: "전/부침", tags: ["달달한", "부드러운"] },
+      { id: 125, name: "깻잎전", cat: "전/부침", tags: ["향긋한", "고기속"] },
+      { id: 126, name: "고추전", cat: "전/부침", tags: ["아삭매콤", "고기속"] },
+      { id: 127, name: "굴전", cat: "전/부침", tags: ["바다향", "부드러운"] },
+      { id: 128, name: "배추전", cat: "전/부침", tags: ["달큰한", "담백한"] },
+      { id: 129, name: "모둠전", cat: "전/부침", tags: ["골라먹는", "푸짐한"] },
+      { id: 130, name: "물냉면", cat: "면", tags: ["살얼음", "시원한", "여름별미", "혼밥"] },
+      { id: 131, name: "비빔냉면", cat: "면", tags: ["매콤달콤", "면", "혼밥"] },
+      { id: 132, name: "회냉면", cat: "면", tags: ["매콤새콤", "쫄깃한회"] },
+      { id: 133, name: "평양냉면", cat: "면", tags: ["은은한육향", "슴슴한", "미식"] },
+      { id: 134, name: "함흥냉면", cat: "면", tags: ["쫄깃한국수", "매콤새콤"] },
+      { id: 135, name: "진주냉면", cat: "면", tags: ["육전듬뿍", "해물육수"] },
+      { id: 136, name: "바지락칼국수", cat: "면", tags: ["시원한국물", "면", "해물"] },
+      { id: 137, name: "닭칼국수", cat: "면", tags: ["진한국물", "든든한", "닭고기"] },
+      { id: 138, name: "얼큰칼국수", cat: "면", tags: ["얼큰한", "해장", "면"] },
+      { id: 139, name: "들깨칼국수", cat: "면", tags: ["고소한국물", "걸쭉한"] },
+      { id: 140, name: "팥칼국수", cat: "면", tags: ["달콤고소", "전통"] },
+      { id: 141, name: "장칼국수", cat: "면", tags: ["구수얼큰", "강원도별미"] },
+      { id: 142, name: "잔치국수", cat: "면", tags: ["따뜻한국물", "가벼운", "가성비"] },
+      { id: 143, name: "비빔국수", cat: "면", tags: ["새콤달콤", "입맛돋우는"] },
+      { id: 144, name: "열무국수", cat: "면", tags: ["시원한", "아삭한", "여름별미"] },
+      { id: 145, name: "콩국수", cat: "면", tags: ["고소한국물", "시원한", "여름별미"] },
+      { id: 146, name: "동치미국수", cat: "면", tags: ["시원한", "깔끔한"] },
+      { id: 147, name: "제주고기국수", cat: "면", tags: ["진한국물", "고기듬뿍"] },
+      { id: 148, name: "부산밀면", cat: "면", tags: ["살얼음", "새콤달콤", "시원한"] },
+      { id: 149, name: "비빔밀면", cat: "면", tags: ["매콤달콤", "부산명물"] },
+      { id: 150, name: "메밀막국수", cat: "면", tags: ["시원한", "고소한메밀"] },
+      { id: 151, name: "들기름막국수", cat: "면", tags: ["초고소", "자극없는", "별미"] },
+      { id: 152, name: "손수제비", cat: "면", tags: ["쫄깃한", "따뜻한국물"] },
+      { id: 153, name: "들깨수제비", cat: "면", tags: ["고소한국물", "걸쭉한"] },
+      { id: 154, name: "얼큰수제비", cat: "면", tags: ["얼큰한국물", "해장"] },
+      { id: 155, name: "분식라면", cat: "면", tags: ["빠른한끼", "얼큰한", "가성비"] },
+      { id: 156, name: "해물라면", cat: "면", tags: ["시원한국물", "해물듬뿍"] },
+      { id: 157, name: "짜파구리", cat: "면", tags: ["달콤짭짤", "별미"] },
+      { id: 158, name: "매콤쫄면", cat: "면", tags: ["새콤매콤", "아삭채소", "분식"] },
+      { id: 159, name: "당면잡채", cat: "면", tags: ["고소한", "잔치느낌"] },
+      { id: 160, name: "유부우동", cat: "면", tags: ["따뜻한국물", "깔끔한"] },
+      { id: 161, name: "짜장면", cat: "중식", tags: ["달콤고소", "빠른한끼", "중식"] },
+      { id: 162, name: "간짜장", cat: "중식", tags: ["불맛", "양파가득", "중식"] },
+      { id: 163, name: "쟁반짜장", cat: "중식", tags: ["해물가득", "매콤달콤", "푸짐한"] },
+      { id: 164, name: "얼큰짬뽕", cat: "중식", tags: ["얼큰한", "불맛", "해장", "중식"] },
+      { id: 165, name: "차돌짬뽕", cat: "중식", tags: ["진한국물", "고기듬뿍", "든든한"] },
+      { id: 166, name: "백짬뽕", cat: "중식", tags: ["시원칼칼", "깔끔한"] },
+      { id: 167, name: "바삭탕수육", cat: "중식", tags: ["새콤달콤", "바삭한", "다함께"] },
+      { id: 168, name: "찹쌀탕수육", cat: "중식", tags: ["쫄깃바삭", "새콤달콤"] },
+      { id: 169, name: "깐풍기", cat: "중식", tags: ["매콤달콤", "바삭한"] },
+      { id: 170, name: "유린기", cat: "중식", tags: ["새콤짭짤", "상큼채소"] },
+      { id: 171, name: "양장피", cat: "중식", tags: ["톡쏘는겨자", "신선채소"] },
+      { id: 172, name: "팔보채", cat: "중식", tags: ["해물가득", "고급"] },
+      { id: 173, name: "고추잡채꽃빵", cat: "중식", tags: ["불맛", "매콤아삭"] },
+      { id: 174, name: "마파두부밥", cat: "중식", tags: ["매콤알싸", "부드러운두부"] },
+      { id: 175, name: "바삭군만두", cat: "만두", tags: ["바삭바삭", "고기속"] },
+      { id: 176, name: "고기찐만두", cat: "만두", tags: ["육즙가득", "촉촉한"] },
+      { id: 177, name: "평양왕만두", cat: "만두", tags: ["담백한", "푸짐한"] },
+      { id: 178, name: "김치만두", cat: "만두", tags: ["매콤칼칼", "아삭한"] },
+      { id: 179, name: "갈비만두", cat: "만두", tags: ["달콤짭짤", "육즙"] },
+      { id: 180, name: "떡만둣국", cat: "국/탕", tags: ["든든한", "따뜻한국물"] },
+      { id: 181, name: "사골떡국", cat: "국/탕", tags: ["뽀얀국물", "든든한국물"] },
+      { id: 182, name: "전주비빔밥", cat: "밥", tags: ["다채로운나물", "건강식", "한식"] },
+      { id: 183, name: "돌솥비빔밥", cat: "밥", tags: ["지글지글", "누룽지", "따뜻한"] },
+      { id: 184, name: "육회비빔밥", cat: "밥", tags: ["신선한육회", "든든한", "인기"] },
+      { id: 185, name: "산채비빔밥", cat: "밥", tags: ["건강식", "향긋한나물", "깔끔한"] },
+      { id: 186, name: "멍게비빔밥", cat: "밥", tags: ["바다향", "별미"] },
+      { id: 187, name: "꼬막비빔밥", cat: "밥", tags: ["매콤달콤", "쫄깃꼬막", "밥도둑"] },
+      { id: 188, name: "간장게장백반", cat: "밥", tags: ["원조밥도둑", "짭조름", "고급"] },
+      { id: 189, name: "양념게장백반", cat: "밥", tags: ["매콤달콤", "밥도둑"] },
+      { id: 190, name: "보리밥정식", cat: "밥", tags: ["건강식", "된장찌개", "구수한"] },
+      { id: 191, name: "우렁쌈밥정식", cat: "밥", tags: ["신선채소", "푸짐한", "건강"] },
+      { id: 192, name: "연잎밥", cat: "밥", tags: ["향긋한", "전통", "건강"] },
+      { id: 193, name: "영양돌솥밥", cat: "밥", tags: ["누룽지숭늉", "건강식", "정갈한"] },
+      { id: 194, name: "굴국밥/굴밥", cat: "밥", tags: ["바다향", "영양만점", "겨울별미"] },
+      { id: 195, name: "곤드레나물밥", cat: "밥", tags: ["구수한향", "소화잘되는", "건강식"] },
+      { id: 196, name: "콩나물밥", cat: "밥", tags: ["가성비", "양념장", "집밥느낌"] },
+      { id: 197, name: "김치볶음밥", cat: "밥", tags: ["매콤달콤", "계란후라이", "점심스테디"] },
+      { id: 198, name: "새우볶음밥", cat: "밥", tags: ["고소한", "중식", "아이들도좋아함"] },
+      { id: 199, name: "오므라이스", cat: "밥", tags: ["달콤새콤", "부드러운계란"] },
+      { id: 200, name: "하이라이스", cat: "밥", tags: ["진한소스", "달콤한"] },
+      { id: 201, name: "카레라이스", cat: "밥", tags: ["향긋한커리", "빠른한끼"] },
+      { id: 202, name: "오징어덮밥", cat: "밥", tags: ["매콤달콤", "한그릇뚝딱"] },
+      { id: 203, name: "제육덮밥", cat: "밥", tags: ["매콤", "고기", "직장인원픽"] },
+      { id: 204, name: "낙지덮밥", cat: "밥", tags: ["매콤", "스테미너", "불맛"] },
+      { id: 205, name: "치킨마요덮밥", cat: "밥", tags: ["달콤고소", "단짠의정석", "가성비"] },
+      { id: 206, name: "참치마요덮밥", cat: "밥", tags: ["고소한", "간단한끼"] },
+      { id: 207, name: "야채죽", cat: "죽", tags: ["소화편한", "가벼운", "부드러운"] },
+      { id: 208, name: "전복죽", cat: "죽", tags: ["보양식", "고소한내장", "부드러운"] },
+      { id: 209, name: "소고기버섯죽", cat: "죽", tags: ["영양가득", "든든한죽"] },
+      { id: 210, name: "단호박죽", cat: "죽", tags: ["달달한", "부드러운", "간식/식사"] },
+      { id: 211, name: "단팥죽", cat: "죽", tags: ["달콤한", "전통"] },
+      { id: 212, name: "잣죽", cat: "죽", tags: ["고소한", "부드러운"] },
+      { id: 213, name: "흑임자죽", cat: "죽", tags: ["고소한", "건강죽"] },
+      { id: 214, name: "해물누룽지탕", cat: "밥", tags: ["걸쭉한국물", "고소바삭", "중식"] },
+      { id: 215, name: "매콤떡볶이", cat: "분식", tags: ["국민간식", "매콤달콤", "분식"] },
+      { id: 216, name: "라볶이", cat: "분식", tags: ["라면+떡", "푸짐한", "분식"] },
+      { id: 217, name: "국물떡볶이", cat: "분식", tags: ["국물자작", "튀김짝꿍"] },
+      { id: 218, name: "로제떡볶이", cat: "분식", tags: ["크리미매콤", "꾸덕꾸덕", "인기"] },
+      { id: 219, name: "궁중떡볶이", cat: "분식", tags: ["간장양념", "맵지않은", "고기듬뿍"] },
+      { id: 220, name: "기름떡볶이", cat: "분식", tags: ["고소매콤", "통인시장명물"] },
+      { id: 221, name: "찰순대", cat: "분식", tags: ["쫄깃한", "소금에콕"] },
+      { id: 222, name: "모둠튀김", cat: "분식", tags: ["바삭바삭", "떡볶이친구"] },
+      { id: 223, name: "김말이튀김", cat: "분식", tags: ["바삭고소", "당면듬뿍"] },
+      { id: 224, name: "오징어튀김", cat: "분식", tags: ["쫄깃바삭", "해물"] },
+      { id: 225, name: "야채튀김", cat: "분식", tags: ["달달바삭", "채소"] },
+      { id: 226, name: "어묵꼬치탕", cat: "분식", tags: ["뜨끈한국물", "겨울필수"] },
+      { id: 227, name: "원조야채김밥", cat: "분식", tags: ["간단한끼", "혼밥", "가성비"] },
+      { id: 228, name: "참치마요김밥", cat: "분식", tags: ["고소한", "김밥베스트셀러"] },
+      { id: 229, name: "치즈김밥", cat: "분식", tags: ["꾸덕고소", "라면과찰떡"] },
+      { id: 230, name: "소고기김밥", cat: "분식", tags: ["든든한", "고기속"] },
+      { id: 231, name: "돈까스김밥", cat: "분식", tags: ["바삭바삭", "푸짐한한줄"] },
+      { id: 232, name: "충무김밥", cat: "분식", tags: ["오징어무침", "석박지", "별미"] },
+      { id: 233, name: "삼각김밥", cat: "분식", tags: ["초스피드", "편의점/분식", "초가성비"] },
+      { id: 234, name: "후라이드치킨", cat: "양식", tags: ["바삭바삭", "고소한", "치느님"] },
+      { id: 235, name: "양념치킨", cat: "양식", tags: ["매콤달콤", "중독성"] },
+      { id: 236, name: "간장치킨", cat: "양식", tags: ["단짠단짠", "바삭한"] },
+      { id: 237, name: "고추바사삭치킨", cat: "양식", tags: ["알싸한", "구운치킨"] },
+      { id: 238, name: "치즈시즈닝치킨(뿌링클)", cat: "양식", tags: ["단짠치즈", "젊은층원픽"] },
+      { id: 239, name: "파닭", cat: "양식", tags: ["알싸한파채", "상큼소스"] },
+      { id: 240, name: "닭강정", cat: "양식", tags: ["바삭달콤", "식어도맛있는"] },
+      { id: 241, name: "옛날통닭", cat: "양식", tags: ["얇고바삭한껍질", "추억의맛"] },
+      { id: 242, name: "경양식돈까스", cat: "양식", tags: ["바삭달콤", "스프제공", "직장인소울푸드"] },
+      { id: 243, name: "일식등심돈카츠", cat: "양식", tags: ["두툼한고기", "바삭한식감", "와사비"] },
+      { id: 244, name: "치즈돈까스", cat: "양식", tags: ["치즈줄줄", "고소한"] },
+      { id: 245, name: "생선까스", cat: "양식", tags: ["타르타르소스", "부드러운"] },
+      { id: 246, name: "함박스테이크", cat: "양식", tags: ["부드러운육즙", "달콤데미소스"] },
+      { id: 247, name: "토마토스파게티", cat: "양식", tags: ["새콤달콤", "기본파스타"] },
+      { id: 248, name: "크림파스타", cat: "양식", tags: ["고소꾸덕", "부드러운"] },
+      { id: 249, name: "베이컨까르보나라", cat: "양식", tags: ["고소짭짤", "크리미"] },
+      { id: 250, name: "로제파스타", cat: "양식", tags: ["토마토+크림", "인기만점"] },
+      { id: 251, name: "알리오올리오", cat: "양식", tags: ["마늘향가득", "오일파스타", "깔끔한"] },
+      { id: 252, name: "봉골레파스타", cat: "양식", tags: ["조개육수", "시원깔끔"] },
+      { id: 253, name: "고르곤졸라피자", cat: "양식", tags: ["달콤한꿀", "치즈가득"] },
+      { id: 254, name: "불고기피자", cat: "양식", tags: ["한국인입맛저격", "달콤짭짤"] },
+      { id: 255, name: "콤비네이션피자", cat: "양식", tags: ["풍성한토핑", "클래식"] },
+      { id: 256, name: "포테이토피자", cat: "양식", tags: ["담백포근감자", "마요네즈"] },
+      { id: 257, name: "수육과 겉절이배추김치", cat: "한식", tags: ["아삭매콤", "보쌈친구"] },
+      { id: 258, name: "설렁탕 깍두기백반", cat: "한식", tags: ["시원한무", "국밥필수"] },
+      { id: 259, name: "총각김치비빔밥", cat: "한식", tags: ["오독오독", "개운한"] },
+      { id: 260, name: "열무김치보리밥", cat: "한식", tags: ["시원아삭", "여름별미"] },
+      { id: 261, name: "여수갓김치정식", cat: "한식", tags: ["알싸한맛", "전라도밥상"] },
+      { id: 262, name: "짜파게티&파김치", cat: "면", tags: ["환상의조합", "단짠매콤"] },
+      { id: 263, name: "오이소박이백반", cat: "한식", tags: ["상큼아삭", "시원한"] },
+      { id: 264, name: "나박김치소면", cat: "면", tags: ["시원칼칼", "속편한"] },
+      { id: 265, name: "동치미메밀국수", cat: "면", tags: ["속이뻥", "얼음동동"] },
+      { id: 266, name: "백김치비빔밥", cat: "한식", tags: ["맵지않은", "개운한"] },
+      { id: 267, name: "시금치된장국백반", cat: "국/탕", tags: ["구수한", "집밥느낌"] },
+      { id: 268, name: "콩나물무침비빔밥", cat: "한식", tags: ["아삭아삭", "초간단"] },
+      { id: 269, name: "고사리나물육개장", cat: "국/탕", tags: ["깊은맛", "전통"] },
+      { id: 270, name: "취나물돌솥밥", cat: "밥", tags: ["봄내음", "향긋한"] },
+      { id: 271, name: "무생채비빔밥", cat: "밥", tags: ["새콤아삭", "참기름솔솔"] },
+      { id: 272, name: "멸치볶음주먹밥", cat: "분식", tags: ["단짠바삭", "간단식사"] },
+      { id: 273, name: "빨간어묵볶음백반", cat: "한식", tags: ["매콤달콤", "소울반찬"] },
+      { id: 274, name: "진미채김밥", cat: "분식", tags: ["매콤쫄깃", "중독성"] },
+      { id: 275, name: "달콤감자조림정식", cat: "한식", tags: ["포슬포슬", "단짠"] },
+      { id: 276, name: "미역줄기볶음백반", cat: "한식", tags: ["오독오독", "바다향"] },
+      { id: 277, name: "메추리알장조림버터밥", cat: "밥", tags: ["단짠고소", "추억의맛"] },
+      { id: 278, name: "소세지야채볶음밥", cat: "밥", tags: ["케첩단짠", "추억의소야"] },
+      { id: 279, name: "치즈계란말이정식", cat: "한식", tags: ["부드러운", "영양만점"] },
+      { id: 280, name: "간장계란밥", cat: "밥", tags: ["버터한조각", "국민초간단식"] },
+      { id: 281, name: "치즈콘치즈토스트", cat: "양식", tags: ["달콤고소", "치즈폭탄"] },
+      { id: 282, name: "얼큰번데기탕", cat: "국/탕", tags: ["칼칼한국물", "고단백"] },
+      { id: 283, name: "먹태구이", cat: "구이", tags: ["바삭고소", "청양마요"] },
+      { id: 284, name: "노가리구이", cat: "구이", tags: ["쫄깃바삭", "고소한"] },
+      { id: 285, name: "모둠그릴소시지", cat: "양식", tags: ["육즙팡팡", "머스터드"] },
+      { id: 286, name: "추억의떡꼬치", cat: "분식", tags: ["새콤달콤소스", "바삭쫄깃"] },
+      { id: 287, name: "소떡소떡", cat: "분식", tags: ["휴게소원픽", "케첩머스터드"] },
+      { id: 288, name: "바삭핫도그", cat: "간식", tags: ["설탕솔솔", "바삭한"] },
+      { id: 289, name: "팥/슈크림붕어빵", cat: "간식", tags: ["겨울필수", "달콤바삭"] },
+      { id: 290, name: "꿀씨앗호떡", cat: "간식", tags: ["달콤한국물", "고소한씨앗"] },
+      { id: 291, name: "포슬포슬계란빵", cat: "간식", tags: ["단짠영양", "따뜻한"] },
+      { id: 292, name: "천안호두과자", cat: "간식", tags: ["팥앙금", "고소한호두"] },
+      { id: 293, name: "국화빵", cat: "간식", tags: ["달콤팥", "촉촉쫄깃"] },
+      { id: 294, name: "살얼음식혜와약과", cat: "음청류", tags: ["시원달콤", "전통디저트"] },
+      { id: 295, name: "계피향수정과", cat: "음청류", tags: ["알싸달콤", "개운한"] },
+      { id: 296, name: "얼음동동미숫가루", cat: "음청류", tags: ["든든한곡물", "고소달콤"] },
+      { id: 297, name: "콩고물인절미", cat: "떡", tags: ["쫄깃고소", "전통"] },
+      { id: 298, name: "모둠송편", cat: "떡", tags: ["깨속달콤", "쫄깃한"] },
+      { id: 299, name: "가래떡구이와조청", cat: "떡", tags: ["겉바속쫀", "달콤조청"] },
+      { id: 300, name: "인절미팥빙수", cat: "디저트", tags: ["시원달콤", "팥+연유"] }
+    ];
+
+    // 필터 카테고리 목록
+    const CATEGORIES = ["전체", "탕/찌개", "국/탕", "전골/탕", "구이", "볶음", "찜/조림", "면", "밥", "분식", "중식", "양식"];
+    const THEMES = [
+      { id: "all", label: "전체 테마" },
+      { id: "soup", label: "🍲 든든한 국물", filter: f => f.tags.includes("든든한국물") || f.tags.includes("시원한국물") || f.cat.includes("탕") || f.cat.includes("찌개") },
+      { id: "spicy", label: "🌶️ 매콤/얼큰", filter: f => f.tags.includes("매콤") || f.tags.includes("얼큰한") || f.tags.includes("화끈한매운맛") },
+      { id: "solo", label: "👤 혼밥 추천", filter: f => f.tags.includes("혼밥") || f.tags.includes("빠른한끼") || f.cat === "밥" || f.cat === "면" || f.cat === "분식" },
+      { id: "hangover", label: "🍺 속풀이 해장", filter: f => f.tags.includes("해장") || f.tags.includes("시원한국물") },
+      { id: "light", label: "🥗 가볍고 산뜻하게", filter: f => f.tags.includes("가벼운") || f.tags.includes("깔끔한") || f.tags.includes("건강식") || f.cat === "죽" },
+      { id: "meat", label: "🥩 든든한 고기파", filter: f => f.tags.includes("고기") || f.cat === "구이" || f.cat.includes("찜") }
+    ];
+
+    let selectedCategory = "전체";
+    let selectedTheme = "all";
+    let isSpinning = false;
+    let recentPicks = [];
+    let currentPickedFood = null;
+    let soundEnabled = true;
+
+    // Tone.js 오디오 효과
+    let synth = null;
+    function initSound() {
+      if (!synth && window.Tone) {
+        try {
+          synth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "triangle" },
+            envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+          }).toDestination();
+          synth.volume.value = -12;
+        } catch (e) {
+          console.log("Audio init fallback", e);
+        }
+      }
+    }
+
+    function playTick() {
+      if (!soundEnabled || !synth) return;
+      try {
+        synth.triggerAttackRelease("C5", "32n");
+      } catch (e) {}
+    }
+
+    function playFanfare() {
+      if (!soundEnabled || !synth) return;
+      try {
+        const now = Tone.now();
+        synth.triggerAttackRelease("C5", "16n", now);
+        synth.triggerAttackRelease("E5", "16n", now + 0.1);
+        synth.triggerAttackRelease("G5", "16n", now + 0.2);
+        synth.triggerAttackRelease("C6", "8n", now + 0.3);
+      } catch (e) {}
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const icon = document.getElementById("sound-icon");
+      if (soundEnabled) {
+        icon.className = "fa-solid fa-volume-high text-orange-500";
+        showToast("효과음이 켜졌습니다.");
+        initSound();
+      } else {
+        icon.className = "fa-solid fa-volume-xmark text-slate-400";
+        showToast("효과음이 꺼졌습니다.");
+      }
+    }
+
+    function getFilteredFoods() {
+      return RAW_FOODS.filter(item => {
+        // 카테고리 체크
+        if (selectedCategory !== "전체" && !item.cat.includes(selectedCategory)) {
+          return false;
+        }
+        // 테마 체크
+        if (selectedTheme !== "all") {
+          const themeObj = THEMES.find(t => t.id === selectedTheme);
+          if (themeObj && themeObj.filter && !themeObj.filter(item)) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    function updatePoolCount() {
+      const pool = getFilteredFoods();
+      const label = document.getElementById("pool-count-label");
+      label.textContent = `${pool.length}개 메뉴 중 추천 대기`;
+      if (pool.length === 0) {
+        label.textContent = "조건에 맞는 메뉴 없음 (필터 조정 필요)";
+      }
+    }
+
+    function renderFilters() {
+      // 테마 태그 렌더링
+      const themeContainer = document.getElementById("theme-tags-container");
+      themeContainer.innerHTML = THEMES.map(t => {
+        const active = selectedTheme === t.id;
+        return `
+          <button onclick="setTheme('${t.id}')" class="whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            active 
+              ? 'bg-orange-500 text-white shadow-sm' 
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }">
+            ${t.label}
+          </button>
+        `;
+      }).join('');
+
+      // 카테고리 칩 렌더링
+      const catContainer = document.getElementById("category-chips-container");
+      catContainer.innerHTML = CATEGORIES.map(c => {
+        const active = selectedCategory === c;
+        return `
+          <button onclick="setCategory('${c}')" class="whitespace-nowrap px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+            active 
+              ? 'bg-slate-900 text-white' 
+              : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+          }">
+            ${c}
+          </button>
+        `;
+      }).join('');
+
+      updatePoolCount();
+    }
+
+    function setTheme(id) {
+      selectedTheme = id;
+      renderFilters();
+    }
+
+    function setCategory(cat) {
+      selectedCategory = cat;
+      renderFilters();
+    }
+
+    function resetFilters() {
+      selectedCategory = "전체";
+      selectedTheme = "all";
+      renderFilters();
+      showToast("필터가 초기화되었습니다.");
+    }
+
+    async function spinMenu() {
+      if (isSpinning) return;
+      initSound();
+
+      const pool = getFilteredFoods();
+      if (pool.length === 0) {
+        showToast("조건에 맞는 음식이 없습니다. 필터를 초기화해 주세요!");
+        return;
+      }
+
+      isSpinning = true;
+      const spinBtn = document.getElementById("spin-btn");
+      spinBtn.disabled = true;
+      spinBtn.classList.add("opacity-70", "cursor-not-allowed");
+
+      const nameEl = document.getElementById("result-dish-name");
+      const catEl = document.getElementById("result-category");
+      const descEl = document.getElementById("result-desc");
+      const actionBar = document.getElementById("result-action-bar");
+      actionBar.classList.add("hidden");
+
+      // 슬롯 애니메이션 (점점 느려지는 루프)
+      let speed = 50;
+      let iterations = 24;
+      let currentIndex = 0;
+
+      for (let i = 0; i < iterations; i++) {
+        const randItem = pool[Math.floor(Math.random() * pool.length)];
+        nameEl.textContent = randItem.name;
+        catEl.textContent = `${randItem.cat} • ${randItem.tags.join(' ')}`;
+        nameEl.style.transform = `scale(${1 + (i % 2) * 0.04})`;
+        playTick();
+
+        speed += Math.floor(i * 1.5);
+        await new Promise(r => setTimeout(r, speed));
+      }
+
+      // 최종 선정
+      const finalItem = pool[Math.floor(Math.random() * pool.length)];
+      currentPickedFood = finalItem;
+
+      nameEl.style.transform = "scale(1)";
+      nameEl.textContent = finalItem.name;
+      catEl.textContent = `[${finalItem.cat}]`;
+      descEl.textContent = `추천 태그: #${finalItem.tags.join(' #')} — 오늘의 점심으로 강력 추천합니다!`;
+
+      // 팡파르 및 축하 콘페티
+      playFanfare();
+      triggerConfetti();
+
+      // 지도 검색 링크 생성
+      updateMapLinks(finalItem.name);
+      actionBar.classList.remove("hidden");
+
+      // 최근 기록 추가
+      addRecentHistory(finalItem);
+
+      isSpinning = false;
+      spinBtn.disabled = false;
+      spinBtn.classList.remove("opacity-70", "cursor-not-allowed");
+    }
+
+    function triggerConfetti() {
+      if (window.confetti) {
+        window.confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.7 }
+        });
+      }
+    }
+
+    function updateMapLinks(foodName) {
+      const encoded = encodeURIComponent(foodName);
+      // 네이버 지도 & 카카오맵 검색 링크
+      document.getElementById("link-naver").href = `https://map.naver.com/p/search/${encoded}`;
+      document.getElementById("link-kakao").href = `https://map.kakao.com/?q=${encoded}`;
+    }
+
+    function addRecentHistory(item) {
+      recentPicks = recentPicks.filter(p => p.id !== item.id);
+      recentPicks.unshift(item);
+      if (recentPicks.length > 8) recentPicks.pop();
+      renderRecentHistory();
+    }
+
+    function renderRecentHistory() {
+      const container = document.getElementById("recent-history-list");
+      if (recentPicks.length === 0) {
+        container.innerHTML = '<span class="text-slate-400 text-xs py-1">아직 추천 기록이 없습니다. 버튼을 눌러보세요!</span>';
+        return;
+      }
+      container.innerHTML = recentPicks.map(item => `
+        <span onclick="pickDirectly('${item.name}')" class="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-orange-100 text-slate-700 hover:text-orange-700 rounded-lg cursor-pointer transition font-medium text-xs">
+          <i class="fa-solid fa-utensils text-[10px] text-orange-500"></i> ${item.name}
+        </span>
+      `).join('');
+    }
+
+    function pickDirectly(foodName) {
+      const found = RAW_FOODS.find(f => f.name === foodName);
+      if (found) {
+        currentPickedFood = found;
+        document.getElementById("result-dish-name").textContent = found.name;
+        document.getElementById("result-category").textContent = `[${found.cat}]`;
+        document.getElementById("result-desc").textContent = `추천 태그: #${found.tags.join(' #')}`;
+        updateMapLinks(found.name);
+        document.getElementById("result-action-bar").classList.remove("hidden");
+        showToast(`'${found.name}'이(가) 선택되었습니다.`);
+      }
+    }
+
+    function clearRecentHistory() {
+      recentPicks = [];
+      renderRecentHistory();
+      showToast("최근 추천 기록이 삭제되었습니다.");
+    }
+
+    function copyCurrentMenu() {
+      if (!currentPickedFood) return;
+      const textToCopy = `오늘의 추천 점심 메뉴: [${currentPickedFood.name}] (${currentPickedFood.cat})`;
+      
+      // Fallback clipboard copying
+      const textArea = document.createElement("textarea");
+      textArea.value = textToCopy;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast(`'${currentPickedFood.name}' 메뉴가 복사되었습니다!`);
+      } catch (err) {
+        showToast("클립보드 복사에 실패했습니다.");
+      }
+      document.body.removeChild(textArea);
+    }
+
+    let wcCandidates = [];
+    let wcCurrentRoundCandidates = [];
+    let wcNextRoundCandidates = [];
+    let wcCurrentMatchIndex = 0;
+    let wcTotalMatches = 0;
+
+    function startWorldcup(size) {
+      initSound();
+      // 랜덤 셔플된 size개의 음식 선별
+      const shuffled = [...RAW_FOODS].sort(() => 0.5 - Math.random());
+      wcCandidates = shuffled.slice(0, size);
+      wcCurrentRoundCandidates = [...wcCandidates];
+      wcNextRoundCandidates = [];
+      wcCurrentMatchIndex = 0;
+
+      document.getElementById("worldcup-setup").classList.add("hidden");
+      document.getElementById("worldcup-arena").classList.remove("hidden");
+      document.getElementById("worldcup-result").classList.add("hidden");
+
+      renderWorldcupMatch();
+    }
+
+    function renderWorldcupMatch() {
+      const remaining = wcCurrentRoundCandidates.length;
+      const roundLabel = remaining === 2 ? "결승전 🏆" : (remaining === 4 ? "준결승 (4강)" : `${remaining}강`);
+      wcTotalMatches = Math.floor(remaining / 2);
+      const matchNum = wcCurrentMatchIndex + 1;
+
+      document.getElementById("wc-round-label").textContent = roundLabel;
+      document.getElementById("wc-match-label").textContent = `${matchNum} / ${wcTotalMatches} 경기`;
+
+      const left = wcCurrentRoundCandidates[wcCurrentMatchIndex * 2];
+      const right = wcCurrentRoundCandidates[wcCurrentMatchIndex * 2 + 1];
+
+      document.getElementById("wc-left-category").textContent = left.cat;
+      document.getElementById("wc-left-title").textContent = left.name;
+
+      document.getElementById("wc-right-category").textContent = right.cat;
+      document.getElementById("wc-right-title").textContent = right.name;
+    }
+
+    function chooseCandidate(chosenSide) {
+      initSound();
+      playTick();
+
+      const left = wcCurrentRoundCandidates[wcCurrentMatchIndex * 2];
+      const right = wcCurrentRoundCandidates[wcCurrentMatchIndex * 2 + 1];
+      const winner = chosenSide === 0 ? left : right;
+
+      wcNextRoundCandidates.push(winner);
+      wcCurrentMatchIndex++;
+
+      // 현재 라운드의 모든 경기가 끝났는지 확인
+      if (wcCurrentMatchIndex >= wcTotalMatches) {
+        if (wcNextRoundCandidates.length === 1) {
+          // 최종 우승!
+          finishWorldcup(wcNextRoundCandidates[0]);
+        } else {
+          // 다음 라운드로 전환
+          wcCurrentRoundCandidates = [...wcNextRoundCandidates];
+          wcNextRoundCandidates = [];
+          wcCurrentMatchIndex = 0;
+          renderWorldcupMatch();
+        }
+      } else {
+        renderWorldcupMatch();
+      }
+    }
+
+    function finishWorldcup(winner) {
+      playFanfare();
+      triggerConfetti();
+
+      document.getElementById("worldcup-arena").classList.add("hidden");
+      const resBox = document.getElementById("worldcup-result");
+      resBox.classList.remove("hidden");
+
+      document.getElementById("wc-winner-name").textContent = winner.name;
+      document.getElementById("wc-winner-cat").textContent = `${winner.cat} • ${winner.tags.join(' ')}`;
+
+      const encoded = encodeURIComponent(winner.name);
+      document.getElementById("wc-link-naver").href = `https://map.naver.com/p/search/${encoded}`;
+      document.getElementById("wc-link-kakao").href = `https://map.kakao.com/?q=${encoded}`;
+    }
+
+    function restartWorldcup() {
+      document.getElementById("worldcup-setup").classList.remove("hidden");
+      document.getElementById("worldcup-arena").classList.add("hidden");
+      document.getElementById("worldcup-result").classList.add("hidden");
+    }
+
+    function renderAllList(items) {
+      const body = document.getElementById("all-food-table-body");
+      document.getElementById("list-count").textContent = items.length;
+
+      if (items.length === 0) {
+        body.innerHTML = '<div class="p-8 text-center text-xs text-slate-400">일치하는 음식이 없습니다.</div>';
+        return;
+      }
+
+      body.innerHTML = items.map(food => {
+        const encoded = encodeURIComponent(food.name);
+        return `
+          <div class="p-3.5 flex items-center justify-between hover:bg-orange-50/50 transition">
+            <div class="flex items-center gap-3">
+              <span class="w-8 text-center text-xs font-mono font-bold text-slate-400">${food.id}</span>
+              <div>
+                <h4 class="text-sm font-bold text-slate-900">${food.name}</h4>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span class="text-[10px] font-semibold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-md">${food.cat}</span>
+                  <span class="text-[10px] text-slate-400">${food.tags.join(', ')}</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <a href="https://map.naver.com/p/search/${encoded}" target="_blank" class="p-2 rounded-lg bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-600 text-xs transition" title="네이버 지도에서 식당 검색">
+                <i class="fa-solid fa-location-dot"></i>
+              </a>
+              <button onclick="pickDirectly('${food.name}'); switchTab('roulette');" class="px-2.5 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-500 hover:text-white text-orange-600 text-xs font-semibold transition" title="룰렛 추천기에 띄우기">
+                선택
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterAllList() {
+      const q = document.getElementById("search-input").value.trim().toLowerCase();
+      if (!q) {
+        renderAllList(RAW_FOODS);
+        return;
+      }
+      const filtered = RAW_FOODS.filter(item => 
+        item.name.toLowerCase().includes(q) || 
+        item.cat.toLowerCase().includes(q) ||
+        item.tags.some(tag => tag.toLowerCase().includes(q))
+      );
+      renderAllList(filtered);
+    }
+
+    function switchTab(tabId) {
+      const tabs = ['roulette', 'worldcup', 'list'];
+      tabs.forEach(t => {
+        const sec = document.getElementById(`tab-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (t === tabId) {
+          sec.classList.remove('hidden');
+          btn.className = "px-3 py-1.5 rounded-lg transition-all bg-white text-orange-600 shadow-sm font-semibold";
+        } else {
+          sec.classList.add('hidden');
+          btn.className = "px-3 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900 font-semibold";
+        }
+      });
+      if (tabId === 'list') {
+        filterAllList();
+      }
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById("toast-box");
+      const label = document.getElementById("toast-msg");
+      label.textContent = msg;
+      toast.classList.remove("opacity-0");
+      toast.classList.add("opacity-100");
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove("opacity-100");
+        toast.classList.add("opacity-0");
+      }, 2400);
+    }
+
+    window.onload = function () {
+      renderFilters();
+      renderAllList(RAW_FOODS);
+    };
+  </script>
+</body>
+</html>
